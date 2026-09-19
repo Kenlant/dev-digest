@@ -62,6 +62,8 @@ export const RunStats = z.object({
   duration_ms: z.number().int(),
   tokens_in: z.number().int(),
   tokens_out: z.number().int(),
+  /** USD cost of this run; null when unknown (pre-feature runs, failed cost calc). */
+  cost_usd: z.number().nullable(),
   findings: z.number().int(),
   grounding: z.string(),
 });
@@ -110,5 +112,8 @@ export const RunSummary = z.object({
   // findings that trip the agent's gate. Null on failed/cancelled runs.
   score: z.number().int().nullable(),
   blockers: z.number().int().nullable(),
+  /** USD cost of THIS run only (not cumulative — see PrMeta.total_cost_usd
+   *  for the sum across a PR's runs). Null when unknown. */
+  cost_usd: z.number().nullable(),
 });
 export type RunSummary = z.infer<typeof RunSummary>;

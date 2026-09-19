@@ -43,6 +43,28 @@ draft, not verified truth: spot-check it periodically.
 
 ## Recurring Errors & Fixes
 
+- **A review run hangs for 10-20+ minutes with no further log output after
+  "Reviewing all files in one pass," then eventually finishes or has to be
+  cancelled.** Cause: `reviewer-core/src/review/run.ts`'s call to
+  `completeStructured` never set `maxTokens` — OpenRouter's
+  `deepseek/deepseek-v4-flash` (and other reasoning-style models) spend part
+  of the output-token budget on internal "reasoning" tokens before the actual
+  JSON content, and with NO cap that generation is unbounded. The 90s
+  `OpenAI` SDK client timeout (`reviewer-core/src/llm/openrouter.ts`) does
+  NOT save you here — the request isn't stalled/erroring, it's just genuinely
+  still generating, so nothing times out. Fix: always pass an explicit
+  `maxTokens` (see `REVIEW_MAX_OUTPUT_TOKENS` in
+  `src/modules/reviews/constants.ts`, currently 8000) through
+  `ReviewInput.maxTokens` → `completeStructured`. Verified against the exact
+  PR/model that was stuck: went from 10m46s+ (still running when cancelled)
+  to a consistent 60s after the fix, using only 4443 of the 8000-token
+  budget — plenty of headroom, nothing got truncated.
+- Root cause was findable via `docker exec devdigest-postgres psql ... SELECT
+  status, now()-ran_at FROM agent_runs WHERE ...` — `ran_at` is set once at
+  row creation and never bumped by internal reprompt retries, so elapsed time
+  from it is a reliable "how long has this actually been running" signal
+  when the UI just says "running."
+
 ## Session Notes
 
 ### 2026-09-19

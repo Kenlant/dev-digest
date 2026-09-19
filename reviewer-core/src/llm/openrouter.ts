@@ -66,22 +66,28 @@ export class OpenRouterProvider implements LLMProvider {
     let lastRaw = '';
 
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-      const res = await this.client.chat.completions.create({
-        model: req.model,
-        messages,
-        temperature: req.temperature ?? 0,
-        ...(req.maxTokens ? { max_tokens: req.maxTokens } : {}),
-        response_format: {
-          type: 'json_schema',
-          json_schema: { name: req.schemaName, schema: jsonSchema.schema, strict: true },
+      const res = await this.client.chat.completions.create(
+        {
+          model: req.model,
+          messages,
+          temperature: req.temperature ?? 0,
+          ...(req.maxTokens ? { max_tokens: req.maxTokens } : {}),
+          response_format: {
+            type: 'json_schema',
+            json_schema: { name: req.schemaName, schema: jsonSchema.schema, strict: true },
+          },
+          // OpenRouter session grouping — extra body field (spread is exempt from
+          // excess-property checks). Only sent when talking to OpenRouter.
+          ...(this.id === 'openrouter' && req.sessionId ? { session_id: req.sessionId } : {}),
+          // OpenRouter usage accounting — ask it to return the REAL generation
+          // cost (USD) in `usage.cost`, instead of estimating from a price book.
+          ...(this.id === 'openrouter' ? { usage: { include: true } } : {}),
         },
-        // OpenRouter session grouping — extra body field (spread is exempt from
-        // excess-property checks). Only sent when talking to OpenRouter.
-        ...(this.id === 'openrouter' && req.sessionId ? { session_id: req.sessionId } : {}),
-        // OpenRouter usage accounting — ask it to return the REAL generation
-        // cost (USD) in `usage.cost`, instead of estimating from a price book.
-        ...(this.id === 'openrouter' ? { usage: { include: true } } : {}),
-      });
+        // Per-request timeout override (the constructor's timeoutMs is only a
+        // default). Previously req.timeoutMs was silently ignored here, unlike
+        // the openai/anthropic adapters which already honor it per-call.
+        req.timeoutMs ? { timeout: req.timeoutMs } : undefined,
+      );
 
       // OpenRouter can return HTTP 200 with no `choices` (an upstream provider
       // error / moderation / free-tier limit in the body) — surface it.

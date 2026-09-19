@@ -202,12 +202,20 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     expect(trace.config.model).toBe('gpt-4.1');
     expect(trace.stats.grounding).toBe('1/2 passed');
     expect(trace.log.length).toBeGreaterThan(0);
+    // MockLLMProvider.completeStructured always reports costUsd: 0.001; a
+    // single-pass review over this tiny one-file diff is exactly one call.
+    expect(trace.stats.cost_usd).toBeCloseTo(0.001, 6);
 
     // agent_runs row populated for A5 to aggregate
     const [run] = await pg.handle.db.select().from(t.agentRuns).where(eq(t.agentRuns.id, runId));
     expect(run!.status).toBe('done');
     expect(run!.findingsCount).toBe(1);
     expect(run!.grounding).toBe('1/2 passed');
+    expect(run!.costUsd).toBeCloseTo(0.001, 6);
+
+    // cost flows through to the PR's run-history endpoint too
+    const runs = (await app.inject({ method: 'GET', url: `/pulls/${pr.id}/runs` })).json();
+    expect(runs[0].cost_usd).toBeCloseTo(0.001, 6);
 
     await app.close();
   });

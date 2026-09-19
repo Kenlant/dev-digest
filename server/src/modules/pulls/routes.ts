@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, sum } from 'drizzle-orm';
 import type { PrMeta, PrDetail, GitHubClient, PrReviewComment } from '@devdigest/shared';
 import { PrCommentInput } from '@devdigest/shared';
 import * as t from '../../db/schema.js';
@@ -129,6 +129,24 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
       }
     }
 
+    // Total cost across ALL agent_runs for each PR (cumulative spend, unlike
+    // the latest-only score above). agent_runs has prId directly — no join
+    // needed. SUM() over an all-NULL or empty group returns SQL NULL, which
+    // we must keep as null (never coalesce to 0) so "no cost-tracked runs"
+    // renders as "—" on the list, not a fake "$0.00"/"$0".
+    const totalCostByPr = new Map<string, number | null>();
+    if (prIds.length > 0) {
+      const costRows = await container.db
+        .select({ prId: t.agentRuns.prId, total: sum(t.agentRuns.costUsd) })
+        .from(t.agentRuns)
+        .where(inArray(t.agentRuns.prId, prIds))
+        .groupBy(t.agentRuns.prId);
+      for (const row of costRows) {
+        if (row.prId == null) continue;
+        totalCostByPr.set(row.prId, row.total == null ? null : Number(row.total));
+      }
+    }
+
     const now = Date.now();
     return rows.map((r) => {
       const review = latestReviewByPr.get(r.id);
@@ -153,6 +171,7 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
         opened_at: r.openedAt?.toISOString() ?? null,
         updated_at: r.updatedAt?.toISOString() ?? null,
         score: review ? review.score : null,
+        total_cost_usd: totalCostByPr.get(r.id) ?? null,
       };
     });
   });
