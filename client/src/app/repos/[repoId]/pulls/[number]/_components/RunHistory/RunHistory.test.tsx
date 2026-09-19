@@ -30,6 +30,7 @@ function run(o: Partial<RunSummary>): RunSummary {
     ran_at: "2026-06-11T18:44:34.000Z",
     score: null,
     blockers: null,
+    cost_usd: null,
     ...o,
   };
 }
@@ -71,5 +72,17 @@ describe("RunHistory — outcome badge", () => {
   it("a running run reads 'running'", () => {
     renderRuns([run({ status: "running", score: null, blockers: null })]);
     expect(screen.getByText("running")).toBeInTheDocument();
+  });
+});
+
+describe("RunHistory — cost/tokens line", () => {
+  it("shows tokens + cost for a settled run that has them", () => {
+    renderRuns([run({ status: "done", tokens_in: 8119, tokens_out: 1000, cost_usd: 0.0013 })]);
+    expect(screen.getByText("9 119 tok · $0.0013")).toBeInTheDocument();
+  });
+
+  it("shows no cost line (not a fake $0.00) for a legacy run with no cost data", () => {
+    renderRuns([run({ status: "done", tokens_in: null, tokens_out: null, cost_usd: null })]);
+    expect(screen.queryByText(/\$0\.00/)).not.toBeInTheDocument();
   });
 });
