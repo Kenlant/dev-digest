@@ -13,12 +13,8 @@ export function formatCost(usd: number | null): string {
   if (usd == null) return "—";
   if (usd === 0) return "$0.00";
   const abs = Math.abs(usd);
-  // Dollar-and-up: ordinary 2-decimal currency formatting ($1.23).
   if (abs >= 1) return `$${usd.toFixed(2)}`;
-  // Sub-dollar (the common case for a single review run): keep exactly 2
-  // significant figures so a small cost never rounds away to nothing —
-  // toPrecision(2) would print a trailing zero ("0.060"), so round-trip
-  // through Number()/String() to drop it back to "0.06".
+  // Sub-dollar: see INSIGHTS.md re: toPrecision's trailing-zero string quirk.
   return `$${String(Number(abs.toPrecision(2)))}`;
 }
 
@@ -51,7 +47,6 @@ export function RunCostMeta({
   );
 }
 
-/** "9119" -> "9 119" — space-grouped thousands, matching the mockup's style. */
 function groupThousands(n: number): string {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }

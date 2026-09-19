@@ -16,8 +16,9 @@ Fastify 5.2 · Drizzle ORM 0.38 + `postgres` (pgvector) · `fastify-type-provide
 ## Commands
 
 `pnpm dev` (`:3001`) · `pnpm build` / `pnpm start` · `pnpm typecheck` ·
-`pnpm test` (unit: `vitest run --exclude '**/*.it.test.ts'`, DB integration:
-`vitest run .it.test`) · `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed`.
+`pnpm lint` (ESLint, flat config in `eslint.config.js`) · `pnpm test` (unit:
+`vitest run --exclude '**/*.it.test.ts'`, DB integration: `vitest run
+.it.test`) · `pnpm db:generate` / `pnpm db:migrate` / `pnpm db:seed`.
 
 ## Map
 
@@ -43,6 +44,19 @@ Fastify 5.2 · Drizzle ORM 0.38 + `postgres` (pgvector) · `fastify-type-provide
 - Modules are registered statically in `modules/index.ts` — one import + one
   `app.register` per module, nothing dynamic.
 
+## Naming conventions
+
+- Feature modules: `modules/<kebab-case-name>/routes.ts`, one Fastify plugin
+  per domain — the folder name is the domain name (`pulls`, `repo-intel`).
+- DB schema files: `db/schema/<concern>.ts`, one file per bounded concern
+  (`agents.ts`, `ci.ts`, `core.ts`), not one file per table.
+- Repositories: `<domain>.repo.ts` (e.g. `run.repo.ts`) inside
+  `modules/<name>/repository/`.
+- Adapters: `adapters/<port>/` per port (llm, github, git, …), with
+  `mocks.ts` at the `adapters/` root providing every port's test double.
+- See root [`CLAUDE.md`](../CLAUDE.md#naming-conventions) for cross-package
+  rules.
+
 ## Gotchas
 
 - `GITHUB_TOKEN` is canonical; `GITHUB_PAT` is accepted only as a fallback.
@@ -55,8 +69,8 @@ Fastify 5.2 · Drizzle ORM 0.38 + `postgres` (pgvector) · `fastify-type-provide
 ## Read when…
 
 - API/DI/request flow diagrams → [`README.md`](README.md)
-- Deeper design notes (as they accumulate) → [`docs/`](docs/)
-- Functional/behavioral specs (as they're written) → [`specs/`](specs/)
+- DI container, ports/adapters, module registration → [`docs/architecture.md`](docs/architecture.md)
+- The review flow's full contract (trigger → cost → reads) → [`specs/review-flow.md`](specs/review-flow.md)
 - Repo indexing internals → [`src/modules/repo-intel/README.md`](src/modules/repo-intel/README.md)
 
 ## End of session

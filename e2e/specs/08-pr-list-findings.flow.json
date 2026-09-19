@@ -1,0 +1,10 @@
+{
+  "name": "PR list renders the Findings column for a reviewed PR",
+  "description": "The PR list table gained a Findings column: one compact severity badge per severity present in a PR's latest review, and hovering a badge opens a read-only popover ('N FINDINGS IN THIS RUN') previewing that severity's findings. Seeded PR #482 (acme/payments-api) has one CRITICAL and one WARNING finding on its latest review. This flow only asserts the column exists and the reviewed row renders — the CLI vocabulary documented in e2e/README.md is click/text/url-based, with no confirmed hover primitive, so the hover-triggered popover content and per-severity scoping are covered instead by the component test suite (client/src/app/repos/[repoId]/pulls/_components/FindingsCell/FindingsCell.test.tsx), which simulates mouseenter/mouseleave directly. Read-only seeded data (no model call). Assumes a freshly-seeded DB where acme/payments-api (PR #482) is the first repo — guaranteed by e2e-web.yml; run locally via the hermetic stack (see e2e/README.md).",
+  "steps": [
+    { "cmd": ["open", "{BASE}/"], "label": "load the app root" },
+    { "cmd": ["wait", "--url", "/pulls"], "label": "land on the PR list" },
+    { "cmd": ["wait", "--text", "Findings"], "label": "the Findings column header renders" },
+    { "cmd": ["wait", "--text", "Add rate limiting to public API endpoints"], "label": "seeded PR #482's row renders (its latest review has CRITICAL + WARNING findings)" }
+  ]
+}

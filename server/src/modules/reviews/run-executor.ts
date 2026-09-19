@@ -195,7 +195,6 @@ export class ReviewRunExecutor {
         // Per-agent review strategy (configured in the Agent editor); falls back
         // to the studio default. single-pass = whole diff in one call.
         strategy: agent.strategy ?? REVIEW_STRATEGY,
-        // Bound worst-case latency/cost — see REVIEW_MAX_OUTPUT_TOKENS's doc.
         maxTokens: REVIEW_MAX_OUTPUT_TOKENS,
         timeoutMs: REVIEW_TIMEOUT_MS,
         // T1.3 — pass the callers digest only when we built one. assemblePrompt

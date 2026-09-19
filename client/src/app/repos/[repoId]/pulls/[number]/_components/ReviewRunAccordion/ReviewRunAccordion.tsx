@@ -7,9 +7,10 @@
 
 import React from "react";
 import { Icon, Badge } from "@devdigest/ui";
-import type { ReviewRecord, Verdict } from "@devdigest/shared";
+import type { ReviewRecord, Severity, Verdict } from "@devdigest/shared";
 import { FindingsPanel } from "../FindingsPanel";
 import { VerdictBanner } from "../VerdictBanner";
+import { SeverityCounterBar } from "../SeverityCounterBar";
 import { useDeleteReview } from "../../../../../../../lib/hooks/reviews";
 
 const VERDICT_COLOR: Record<string, string> = {
@@ -43,13 +44,13 @@ export function ReviewRunAccordion({
   targetNonce?: number;
 }) {
   const [open, setOpen] = React.useState(defaultOpen);
+  const [severityFilter, setSeverityFilter] = React.useState<Severity | null>(null);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   React.useEffect(() => {
     if (review.run_id && review.run_id === targetRunId) {
       setOpen(true);
       rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetRunId, targetNonce, review.run_id]);
   const del = useDeleteReview(prId);
   const findings = review.findings;
@@ -147,11 +148,13 @@ export function ReviewRunAccordion({
               />
             </div>
           )}
+          <SeverityCounterBar findings={findings} active={severityFilter} onSelect={setSeverityFilter} />
           <FindingsPanel
             findings={findings}
             prId={prId}
             repoFullName={repoFullName}
             headSha={headSha}
+            severityFilter={severityFilter}
           />
         </div>
       )}

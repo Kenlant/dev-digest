@@ -15,7 +15,9 @@ Tailwind 4 · `next-intl` (messages in `messages/<locale>/*.json`) ·
 ## Commands
 
 `pnpm dev` (`:3000`) · `pnpm build` / `pnpm start` · `pnpm typecheck` ·
-`pnpm test` (vitest + jsdom, `fetch` mocked — no API needed).
+`pnpm lint` (ESLint, flat config in `eslint.config.js`; includes
+`eslint-plugin-react-hooks`) · `pnpm test` (vitest + jsdom, `fetch` mocked —
+no API needed).
 
 ## Map
 
@@ -42,6 +44,22 @@ Tailwind 4 · `next-intl` (messages in `messages/<locale>/*.json`) ·
 - Feature logic sits in colocated `_components/<Name>/` folders next to the
   page that owns them, each with its own `*.test.tsx`; pages stay thin.
 
+## Naming conventions
+
+- Routes: `app/**/page.tsx` per the Next.js App Router file convention;
+  dynamic segments are `[param]` folders (`repos/[repoId]/pulls/[number]`).
+- Feature components: PascalCase folder under the owning page's
+  `_components/`, matching the component name, with a colocated
+  `<Name>.test.tsx` (e.g. `_components/RunHistory/RunHistory.tsx` +
+  `RunHistory.test.tsx`) — pages themselves stay thin.
+- Hooks: one file per data domain in `lib/hooks/<domain>.ts`, exporting
+  `use<Thing>()` (e.g. `reviews.ts` → `useCancelRun()`).
+- `vendor/ui` (`@devdigest/ui`) primitives live under `primitives/`, `kit/`,
+  `charts/` — always imported through the package's barrel `index.ts`, never
+  by reaching into those layer folders directly.
+- See root [`CLAUDE.md`](../CLAUDE.md#naming-conventions) for cross-package
+  rules.
+
 ## Gotchas
 
 - Component/interaction tests mock `fetch` — they need neither the real API
@@ -52,8 +70,8 @@ Tailwind 4 · `next-intl` (messages in `messages/<locale>/*.json`) ·
 ## Read when…
 
 - Route map and stack details → [`README.md`](README.md)
-- Deeper design notes (as they accumulate) → [`docs/`](docs/)
-- Functional/behavioral specs (as they're written) → [`specs/`](specs/)
+- Server/Client boundaries, hooks→api.ts data flow → [`docs/ui-architecture.md`](docs/ui-architecture.md)
+- Every route's data/behavior contract → [`specs/pages.md`](specs/pages.md)
 - Design-system layers/usage → [`src/vendor/ui/README.md`](src/vendor/ui/README.md)
 
 ## End of session

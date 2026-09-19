@@ -1,9 +1,10 @@
 /**
  * GET /repos/:id/pulls — the list's "Cost" column is a SUM of cost_usd across
- * ALL agent_runs for a PR (cumulative spend), unlike the latest-only "score".
- * This is a Drizzle sum()-over-Postgres integration concern worth its own
- * test: a stringified numeric coming back from the driver must not silently
- * become NaN, and "no cost-tracked runs" must render as null, never 0.
+ * successful (status='done') agent_runs for a PR (cumulative spend), unlike
+ * the latest-only "score". This is a Drizzle sum()-over-Postgres integration
+ * concern worth its own test: a stringified numeric coming back from the
+ * driver must not silently become NaN, "no cost-tracked runs" must render as
+ * null (never 0), and a failed/cancelled run's cost must not be counted.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { startPg, dockerAvailable, type PgFixture } from './helpers/pg.js';
@@ -12,7 +13,6 @@ import { loadConfig } from '../src/platform/config.js';
 import { seed } from '../src/db/seed.js';
 import { MockGitHubClient } from '../src/adapters/mocks.js';
 import * as t from '../src/db/schema.js';
-import { eq } from 'drizzle-orm';
 import type { PrMeta } from '@devdigest/shared';
 
 const hasDocker = await dockerAvailable();
@@ -46,6 +46,7 @@ async function insertRun(
   workspaceId: string,
   prId: string,
   costUsd: number | null,
+  status: 'done' | 'failed' | 'cancelled' = 'done',
 ) {
   await db.insert(t.agentRuns).values({
     workspaceId,
@@ -53,7 +54,7 @@ async function insertRun(
     prId,
     provider: 'openai',
     model: 'gpt-4.1',
-    status: 'done',
+    status,
     costUsd,
   });
 }
@@ -72,7 +73,7 @@ d('GET /repos/:id/pulls — cumulative cost column (Testcontainers pg)', () => {
     await pg?.stop();
   });
 
-  it('sums cost_usd across every run for a PR, and never fakes 0 for a PR with none', async () => {
+  it('sums cost_usd across successful runs only, and never fakes 0 for a PR with none', async () => {
     const gh = new MockGitHubClient({ pulls: [] }); // no GitHub sync — DB rows are the source of truth here
     const app = await buildApp({ config: config(), db: pg.handle.db, overrides: { github: gh } });
 
@@ -82,14 +83,20 @@ d('GET /repos/:id/pulls — cumulative cost column (Testcontainers pg)', () => {
       .returning();
 
     const withRuns = await insertPr(pg.handle.db, workspaceId, repo!.id, 501);
-    const withoutRuns = await insertPr(pg.handle.db, workspaceId, repo!.id, 502);
+    await insertPr(pg.handle.db, workspaceId, repo!.id, 502);
     const withNullCostRun = await insertPr(pg.handle.db, workspaceId, repo!.id, 503);
+    const withOnlyFailedRun = await insertPr(pg.handle.db, workspaceId, repo!.id, 504);
 
     await insertRun(pg.handle.db, workspaceId, withRuns.id, 0.001);
     await insertRun(pg.handle.db, workspaceId, withRuns.id, 0.0005);
+    // A failed run may still carry a partial cost — it must not count toward
+    // the PR's cumulative spend, which tracks successful runs only.
+    await insertRun(pg.handle.db, workspaceId, withRuns.id, 5, 'failed');
     // A run with unknown cost shouldn't poison the "no data" case for a PR
     // that otherwise has none at all — it's a distinct scenario, tested here.
     await insertRun(pg.handle.db, workspaceId, withNullCostRun.id, null);
+    // A PR whose only run failed must render as no cost, not that run's cost.
+    await insertRun(pg.handle.db, workspaceId, withOnlyFailedRun.id, 3, 'failed');
 
     const res = await app.inject({ method: 'GET', url: `/repos/${repo!.id}/pulls` });
     expect(res.statusCode).toBe(200);
@@ -99,6 +106,7 @@ d('GET /repos/:id/pulls — cumulative cost column (Testcontainers pg)', () => {
     expect(byNumber.get(501)!.total_cost_usd).toBeCloseTo(0.0015, 6);
     expect(byNumber.get(502)!.total_cost_usd).toBeNull();
     expect(byNumber.get(503)!.total_cost_usd).toBeNull();
+    expect(byNumber.get(504)!.total_cost_usd).toBeNull();
 
     await app.close();
   });
