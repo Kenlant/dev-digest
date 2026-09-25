@@ -11,17 +11,7 @@
  */
 export const REVIEW_STRATEGY = 'single-pass' as const;
 
-/**
- * Output-token cap for the review LLM call. Left unset, a reasoning model
- * (e.g. OpenRouter's deepseek-v4-flash) can spend an unbounded number of
- * tokens "thinking" before emitting the structured JSON — observed taking
- * 10+ minutes on a real PR diff with zero intermediate log output, since the
- * whole thing happens inside one awaited LLM call. This bounds worst-case
- * latency/cost; if a review genuinely needs more than this to list its
- * findings, hitting the cap fails schema validation fast (triggering the
- * existing reprompt retry) instead of hanging indefinitely.
- */
+/** Output-token cap for the review LLM call — see INSIGHTS.md's reasoning-model entry. */
 export const REVIEW_MAX_OUTPUT_TOKENS = 8000;
 
-/** Hard per-attempt LLM call timeout for a review (ms). */
 export const REVIEW_TIMEOUT_MS = 90_000;

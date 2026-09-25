@@ -76,16 +76,9 @@ export class OpenRouterProvider implements LLMProvider {
             type: 'json_schema',
             json_schema: { name: req.schemaName, schema: jsonSchema.schema, strict: true },
           },
-          // OpenRouter session grouping — extra body field (spread is exempt from
-          // excess-property checks). Only sent when talking to OpenRouter.
           ...(this.id === 'openrouter' && req.sessionId ? { session_id: req.sessionId } : {}),
-          // OpenRouter usage accounting — ask it to return the REAL generation
-          // cost (USD) in `usage.cost`, instead of estimating from a price book.
           ...(this.id === 'openrouter' ? { usage: { include: true } } : {}),
         },
-        // Per-request timeout override (the constructor's timeoutMs is only a
-        // default). Previously req.timeoutMs was silently ignored here, unlike
-        // the openai/anthropic adapters which already honor it per-call.
         req.timeoutMs ? { timeout: req.timeoutMs } : undefined,
       );
 

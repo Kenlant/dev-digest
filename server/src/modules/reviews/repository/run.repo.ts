@@ -1,7 +1,7 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { Db } from '../../../db/client.js';
 import * as t from '../../../db/schema.js';
-import type { RunSummary, RunTrace } from '@devdigest/shared';
+import type { RunSummary, RunTrace, PrFindingPreview } from '@devdigest/shared';
 
 // ---- in-flight / history --------------------------------------------------
 
@@ -48,6 +48,54 @@ export async function listRunsForPull(
     .leftJoin(t.agents, eq(t.agents.id, t.agentRuns.agentId))
     .where(and(eq(t.agentRuns.workspaceId, workspaceId), eq(t.agentRuns.prId, prId)))
     .orderBy(desc(t.agentRuns.ranAt));
+
+  // This run's findings, for the Timeline tile's severity badges + hover
+  // preview. Computed on read (agent_runs has no FK to reviews/findings):
+  // reviews.run_id -> agent_runs.id, then findings by review_id. Mirrors
+  // the PrFindingPreview aggregation in modules/pulls/routes.ts.
+  const runIds = rows.map((r) => r.run.id);
+  const findingsByRunId = new Map<string, PrFindingPreview[]>();
+  if (runIds.length > 0) {
+    const reviewRows = await db
+      .select({ runId: t.reviews.runId, reviewId: t.reviews.id })
+      .from(t.reviews)
+      .where(inArray(t.reviews.runId, runIds));
+    const reviewIdToRunId = new Map(reviewRows.map((r) => [r.reviewId, r.runId as string]));
+    const reviewIds = reviewRows.map((r) => r.reviewId);
+    if (reviewIds.length > 0) {
+      const findingRows = await db
+        .select({
+          reviewId: t.findings.reviewId,
+          severity: t.findings.severity,
+          category: t.findings.category,
+          title: t.findings.title,
+          file: t.findings.file,
+          startLine: t.findings.startLine,
+          endLine: t.findings.endLine,
+          confidence: t.findings.confidence,
+          rationale: t.findings.rationale,
+        })
+        .from(t.findings)
+        .where(inArray(t.findings.reviewId, reviewIds));
+      for (const f of findingRows) {
+        const runId = reviewIdToRunId.get(f.reviewId);
+        if (!runId) continue;
+        const list = findingsByRunId.get(runId) ?? [];
+        list.push({
+          severity: f.severity as PrFindingPreview['severity'],
+          category: f.category as PrFindingPreview['category'],
+          title: f.title,
+          file: f.file,
+          start_line: f.startLine,
+          end_line: f.endLine,
+          confidence: f.confidence,
+          rationale: f.rationale,
+        });
+        findingsByRunId.set(runId, list);
+      }
+    }
+  }
+
   return rows.map(({ run, agentName }) => ({
     run_id: run.id,
     agent_id: run.agentId,
@@ -65,6 +113,7 @@ export async function listRunsForPull(
     score: run.score,
     blockers: run.blockers,
     cost_usd: run.costUsd,
+    findings: findingsByRunId.get(run.id),
   }));
 }
 

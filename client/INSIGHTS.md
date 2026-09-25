@@ -20,6 +20,25 @@ draft, not verified truth: spot-check it periodically.
   `repo-not-found/RepoNotFound.tsx`). Always import from the folder
   (`@/components/foo`), never the file directly — an `index.ts` re-export is
   expected even for a brand-new component.
+- (2026-09-19) `pulls/_components/FindingsCell/FindingsCell.tsx:62`
+  (`FindingsCell`, built for the PR list's Findings column: compact
+  `SeverityBadge`s + a hover popover previewing that severity's findings,
+  read-only) is reusable as-is anywhere else a `PrFindingPreview[]` needs the
+  same read-only severity+hover treatment — it was reused directly at
+  `pulls/[number]/_components/RunHistory/RunHistory.tsx:159` for the Timeline
+  tiles' findings badges (`RunSummary.findings`, same `PrFindingPreview[]`
+  shape) instead of building a second bespoke badge/popover component. Check
+  for a `PrFindingPreview[]`-shaped prop before writing a new severity-badge
+  component.
+- (2026-09-19) Not every per-page filter belongs in the URL query string. The
+  PR detail page's `tab`/`trace` state IS in `?query` (`page.tsx`), but
+  `pulls/[number]/_components/ReviewRunAccordion/ReviewRunAccordion.tsx:47`'s
+  severity filter is deliberately local `useState` — a PR can have many
+  review runs, each needs to filter independently, and a single shared
+  `?severity=` param can't represent "run A filtered to CRITICAL, run B
+  unfiltered" at the same time. Default to URL state only when the filter is
+  truly page-wide/shareable; per-item filters inside a list of repeated
+  components stay local.
 
 ## Tool & Library Notes
 

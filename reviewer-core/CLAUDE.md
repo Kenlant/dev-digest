@@ -17,8 +17,10 @@ built package.
 
 ## Commands
 
-`pnpm typecheck` (doubles as `build` — this package **never emits JS**) ·
-`pnpm test` (hermetic, stubbed `LLMProvider`, no keys/network).
+Package manager is **npm** here (see `package-lock.json`), not pnpm.
+`npm run typecheck` (doubles as `build` — this package **never emits JS**) ·
+`npm run lint` (ESLint, flat config in `eslint.config.js`) · `npm test`
+(hermetic, stubbed `LLMProvider`, no keys/network).
 
 ## Map
 
@@ -42,6 +44,18 @@ built package.
   API but are unused by the starter server — `assemblePrompt` just omits
   sections for slots it isn't given.
 
+## Naming conventions
+
+- One file per pipeline stage, named after the verb it performs:
+  `prompt.ts` (`assemblePrompt`), `grounding.ts` (`groundFindings`) — camelCase
+  function names matching the file's purpose, not the file name itself.
+- `llm/` holds provider implementations of the injected `LLMProvider` port
+  (`llm/openrouter.ts`) plus shared LLM plumbing (`llm/structured.ts`).
+- `review/` holds orchestration strategies: `run.ts` (single-pass),
+  `reduce.ts` (map-reduce) — one file per strategy.
+- See root [`CLAUDE.md`](../CLAUDE.md#naming-conventions) for cross-package
+  rules.
+
 ## Gotchas
 
 - `build` = typecheck only; there is no `dist/` to inspect for correctness.
@@ -51,8 +65,8 @@ built package.
 ## Read when…
 
 - Pipeline diagram and public API list → [`README.md`](README.md)
-- Deeper design notes (as they accumulate) → [`docs/`](docs/)
-- Functional/behavioral specs (as they're written) → [`specs/`](specs/)
+- Stage-by-stage pipeline, mode selection, LLMProvider port → [`docs/pipeline.md`](docs/pipeline.md)
+- Grounding rule + deterministic scoring contract → [`specs/grounding-contract.md`](specs/grounding-contract.md)
 
 ## End of session
 

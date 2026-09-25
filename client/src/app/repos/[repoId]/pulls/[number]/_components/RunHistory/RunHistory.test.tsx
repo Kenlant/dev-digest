@@ -75,6 +75,35 @@ describe("RunHistory — outcome badge", () => {
   });
 });
 
+describe("RunHistory — findings badges (hover preview, matches the PR list's FindingsCell)", () => {
+  it("shows a severity badge for a run with findings, and none for a run without", () => {
+    const { container } = renderRuns([
+      run({
+        run_id: "run-with-findings",
+        status: "done",
+        findings: [
+          {
+            severity: "CRITICAL",
+            category: "security",
+            title: "Hardcoded secret",
+            file: "src/config.ts",
+            start_line: 11,
+            end_line: 11,
+            confidence: 0.9,
+            rationale: "r",
+          },
+        ],
+      }),
+    ]);
+    expect(container.querySelector('[aria-label="CRITICAL findings"]')).toBeInTheDocument();
+  });
+
+  it("renders nothing extra for a run with no findings (no stray dash on the tile)", () => {
+    const { container } = renderRuns([run({ status: "running", findings: undefined })]);
+    expect(container.querySelector('[aria-label$="findings"]')).not.toBeInTheDocument();
+  });
+});
+
 describe("RunHistory — cost/tokens line", () => {
   it("shows tokens + cost for a settled run that has them", () => {
     renderRuns([run({ status: "done", tokens_in: 8119, tokens_out: 1000, cost_usd: 0.0013 })]);

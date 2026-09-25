@@ -82,16 +82,8 @@ export interface ReviewInput {
    * review group into one session in the OpenRouter dashboard.
    */
   sessionId?: string;
-  /**
-   * Cap on generated output tokens per LLM call. Reasoning models (e.g.
-   * OpenRouter's deepseek-v4-flash) spend part of this budget on internal
-   * "reasoning" tokens before the actual JSON content — leaving this unset
-   * means an UNBOUNDED generation, which on a real PR diff can take many
-   * minutes per attempt (observed: a single review run stuck 10+ minutes
-   * with no further log output). Always set this from the caller.
-   */
+  /** Cap on generated output tokens per LLM call — see INSIGHTS.md. */
   maxTokens?: number;
-  /** Per-attempt LLM call timeout (ms), forwarded to the provider. */
   timeoutMs?: number;
   /** Progress sink. */
   onEvent?: (e: ReviewEvent) => void;

@@ -1,6 +1,6 @@
 {
   "name": "PR detail shows the seeded review run, verdict, and findings",
-  "description": "From PR #482, open the Agent runs tab and confirm the seeded review run renders (verdict 'request changes', 2 findings) in its accordion header. The newest run's accordion is open by default (FindingsTab passes defaultOpen to the first run), so the VerdictBanner and the seeded FindingCard ('Hardcoded Stripe secret key in commit') are revealed without an extra click. Exercises the refactored ReviewRunAccordion / VerdictBanner / FindingsPanel / FindingCard. Read-only seeded data (no model call). Assumes a freshly-seeded DB where acme/payments-api (PR #482) is the first repo — guaranteed by e2e-web.yml; run locally via the hermetic stack (see e2e/README.md).",
+  "description": "From PR #482, open the Agent runs tab and confirm the seeded review run renders (verdict 'request changes', 2 findings) in its accordion header. The newest run's accordion is open by default (FindingsTab passes defaultOpen to the first run), so the VerdictBanner, the SeverityCounterBar, and the seeded FindingCard ('Hardcoded Stripe secret key in commit') are revealed without an extra click. Also exercises the per-run SeverityCounterBar (lives inside this one run card, under VerdictBanner): the seeded run has exactly one CRITICAL and one WARNING finding, so its counts row reads 'CRITICAL 1 · WARNING 1', and clicking the 'Warning' filter button narrows this run's FindingsPanel so only the WARNING FindingCard stays visible; clicking 'Warning' again clears the filter and the CRITICAL finding is confirmed visible once more (this flow's locator vocabulary is presence-only, so it doesn't assert the CRITICAL card is absent while filtered — see FindingsPanel/FindingsPanel.test.tsx and SeverityCounterBar/SeverityCounterBar.test.tsx for that assertion). Exercises the refactored ReviewRunAccordion / VerdictBanner / FindingsPanel / FindingCard / SeverityCounterBar. Read-only seeded data (no model call). Assumes a freshly-seeded DB where acme/payments-api (PR #482) is the first repo — guaranteed by e2e-web.yml; run locally via the hermetic stack (see e2e/README.md).",
   "steps": [
     { "cmd": ["open", "{BASE}/"], "label": "load the app root" },
     { "cmd": ["wait", "--url", "/pulls"], "label": "land on the PR list" },
@@ -11,6 +11,11 @@
     { "cmd": ["wait", "--url", "tab=findings"], "label": "findings tab is active in the URL" },
     { "cmd": ["wait", "--text", "request changes"], "label": "seeded run accordion shows its verdict" },
     { "cmd": ["wait", "--text", "2 findings"], "label": "accordion header shows the seeded finding count" },
-    { "cmd": ["wait", "--text", "Hardcoded Stripe secret key in commit"], "label": "seeded FindingCard is visible (newest run is open by default)" }
+    { "cmd": ["wait", "--text", "Hardcoded Stripe secret key in commit"], "label": "seeded FindingCard is visible (newest run is open by default)" },
+    { "cmd": ["wait", "--text", "N+1 query in user list endpoint"], "label": "seeded WARNING FindingCard is also visible" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Warning"], "label": "click this run's Warning filter button" },
+    { "cmd": ["wait", "--text", "N+1 query in user list endpoint"], "label": "WARNING finding stays visible" },
+    { "cmd": ["find", "role", "button", "click", "--name", "Warning"], "label": "click Warning again to clear this run's filter" },
+    { "cmd": ["wait", "--text", "Hardcoded Stripe secret key in commit"], "label": "CRITICAL finding reappears after clearing the filter" }
   ]
 }

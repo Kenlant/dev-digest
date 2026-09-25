@@ -14,8 +14,10 @@ Playwright/Puppeteer) · plain JSON flow specs (no test framework DSL).
 
 ## Commands
 
-`pnpm test` (`tsx run.ts`) · `pnpm e2e:hermetic` (`../scripts/e2e.sh`, full
-stack from scratch) · `pnpm typecheck`.
+Package manager is **npm** here (see `package-lock.json`), not pnpm.
+`npm test` (`tsx run.ts`) · `npm run e2e:hermetic` (`../scripts/e2e.sh`, full
+stack from scratch) · `npm run typecheck` · `npm run lint` (ESLint, flat
+config in `eslint.config.js`).
 
 ## Map
 
@@ -35,6 +37,15 @@ stack from scratch) · `pnpm typecheck`.
   `server/`.
 - No LLM is called — flows assert on deterministic UI state, not model output.
 
+## Naming conventions
+
+- Flow specs: `NN-name.flow.json` in `specs/`, zero-padded two-digit prefix
+  numbered by intended run order (`01-app-boot.flow.json`,
+  `02-repo-pulls-detail.flow.json`, …) — a new journey is a new numbered file,
+  never inserted out of order.
+- See root [`CLAUDE.md`](../CLAUDE.md#naming-conventions) for cross-package
+  rules.
+
 ## Gotchas
 
 - If the stack isn't up (`../scripts/dev.sh` or `pnpm e2e:hermetic`), every
@@ -45,7 +56,8 @@ stack from scratch) · `pnpm typecheck`.
 ## Read when…
 
 - Flow-spec format and runner details → [`README.md`](README.md)
-- Deeper design notes (as they accumulate) → [`docs/`](docs/)
+- Why agent-browser, the run.ts execution model → [`docs/runner-architecture.md`](docs/runner-architecture.md)
+- The exact `*.flow.json` contract → [`specs/flow-contract.md`](specs/flow-contract.md)
 
 ## End of session
 

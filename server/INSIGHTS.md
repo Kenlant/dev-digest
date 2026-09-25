@@ -15,6 +15,27 @@ draft, not verified truth: spot-check it periodically.
 
 ## Codebase Patterns
 
+- (2026-09-19) `vendor/shared/contracts/platform.ts:220`
+  (`PrDetail = PrMeta.extend({...})`), and `GitHubClient.listPullRequests`/
+  `getPullRequest` return objects structurally checked against that same
+  `PrMeta`/`PrDetail` base shape. Adding a **required** field to `PrMeta`
+  (e.g. `findings` for the list endpoint's Findings column) therefore also
+  becomes required on `PrDetail` and on the GitHub-adapter PR objects, which
+  don't have that data — `pnpm typecheck` fails in
+  `adapters/github/octokit.ts`, `adapters/mocks.ts`, and the `GET /pulls/:id`
+  offline-fallback branch, far from the field you actually added. Any
+  `PrMeta` field that's genuinely list-endpoint-only (`score`,
+  `total_cost_usd`, `findings`) must be `.nullish()`/`.optional()` for this
+  reason, not because the list endpoint itself ever omits it.
+- (2026-09-19) The "join findings on read via reviews.run_id" pattern now
+  exists twice — `modules/pulls/routes.ts:131-160` (PR list's
+  `PrFindingPreview[]` per PR, latest review only) and
+  `modules/reviews/repository/run.repo.ts:40`'s `listRunsForPull` (per-run
+  findings for the Timeline, one join per run instead of "latest only").
+  Same shape, same reasoning (no FK from `agent_runs`/`pull_requests` to
+  `findings`, so it's cheaper to join on read than denormalize). Reuse this
+  pattern rather than adding a new per-severity column to
+  `agent_runs`/`pull_requests` if another surface needs findings previews.
 - `ReviewRunExecutor` calls `this.repo.completeAgentRun(...)`, but `this.repo`
   is typed as `ReviewRepository` (`src/modules/reviews/repository.ts`), a
   thin wrapper class — its methods have their OWN parameter-type literal,
@@ -43,6 +64,13 @@ draft, not verified truth: spot-check it periodically.
 
 ## Recurring Errors & Fixes
 
+- (2026-09-19) `modules/pulls/routes.ts:166-172`'s `total_cost_usd` SUM had no
+  `status` filter, so a `failed`/`cancelled` run's partial `costUsd` (set by
+  `completeAgentRun`, `modules/reviews/repository/run.repo.ts:191-227`, for
+  any terminal status, not just `'done'`) was counted into the PR list's
+  cumulative cost — a PR whose only run failed showed that run's cost instead
+  of empty. Fixed by adding `eq(t.agentRuns.status, 'done')` to the `where`.
+  Covered by `test/pulls-cost.it.test.ts`'s "only failed run" case.
 - **A review run hangs for 10-20+ minutes with no further log output after
   "Reviewing all files in one pass," then eventually finishes or has to be
   cancelled.** Cause: `reviewer-core/src/review/run.ts`'s call to

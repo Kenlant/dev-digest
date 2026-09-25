@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PrFindingPreview } from './platform.js';
 
 /**
  * Run trace. The ENTIRE trace of one run is persisted as a SINGLE
@@ -114,5 +115,9 @@ export const RunSummary = z.object({
   /** USD cost of THIS run only (not cumulative — see PrMeta.total_cost_usd
    *  for the sum across a PR's runs). Null when unknown. */
   cost_usd: z.number().nullable(),
+  // This run's findings, for the Timeline tile's severity badges + hover
+  // preview (reuses PrFindingPreview — same read-only shape as the PR
+  // list's Findings column). Computed on read, not denormalized.
+  findings: z.array(PrFindingPreview).optional(),
 });
 export type RunSummary = z.infer<typeof RunSummary>;

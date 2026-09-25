@@ -17,8 +17,23 @@ spot-check it periodically.
 
 ## Tool & Library Notes
 
+- (2026-09-19) This suite's CLI vocabulary (`lib/assert.ts`, driven by
+  `run.ts`) is click/text/url-based only — no confirmed hover primitive.
+  `specs/08-pr-list-findings.flow.json` therefore only asserts the Findings
+  column and reviewed row render; the hover-triggered popover content
+  (severity-scoped finding previews) is covered instead by
+  `client/src/app/repos/[repoId]/pulls/_components/FindingsCell/FindingsCell.test.tsx`,
+  which simulates `mouseenter`/`mouseleave` directly. Don't try to force a
+  hover assertion into a flow spec — defer it to the component test.
+
 ## Recurring Errors & Fixes
 
 ## Session Notes
+
+### 2026-09-19
+Extended `specs/04-pr-findings.flow.json` to also click-toggle the per-run
+severity filter (`SeverityCounterBar`'s "Warning" button) and confirm it
+narrows/restores `FindingsPanel`'s visible cards. Added
+`specs/08-pr-list-findings.flow.json` for the new PR-list Findings column.
 
 ## Open Questions

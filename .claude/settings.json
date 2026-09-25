@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest *)",
+      "Bash(pnpm typecheck)",
+      "Bash(npx tsc *)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm exec vitest *)",
+      "Bash(npx eslint *)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(command grep *)",
+      "Bash(npm view *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(npm run typecheck *)",
+      "Bash(npm run lint *)",
+      "Bash(pnpm lint *)"
+    ]
+  }
+}
