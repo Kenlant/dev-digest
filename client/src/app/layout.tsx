@@ -7,7 +7,11 @@ import { Providers } from "../lib/providers";
 import { themeNoFlashScript } from "../lib/theme";
 
 export const metadata: Metadata = {
-  title: "DevDigest",
+  // `template` composes whatever a segment sets ("PR #42" → "PR #42 · DevDigest");
+  // `default` is what a segment that sets nothing falls back to. Before this,
+  // every screen in the app shared the single title "DevDigest", so browser
+  // history and pinned tabs were indistinguishable.
+  title: { default: "DevDigest", template: "%s · DevDigest" },
   description: "Local-first AI PR review tool",
 };
 

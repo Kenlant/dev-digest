@@ -24,8 +24,12 @@ export function DiffViewer({
   }
   return (
     <div style={s.list}>
-      {files.map((f, i) => (
-        <FileCard key={i} file={f} commenting={commenting} />
+      {/* Keyed by path, not index: FileCard owns collapse state, so an index key
+          re-attached "this card is expanded" to whatever file happened to land
+          at that position when the file list changed (switching PR, diff
+          refetch after posting a comment). Paths are unique within one diff. */}
+      {files.map((f) => (
+        <FileCard key={f.path} file={f} commenting={commenting} />
       ))}
     </div>
   );
