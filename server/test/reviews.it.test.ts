@@ -307,4 +307,78 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     expect(body.runs.length).toBeGreaterThanOrEqual(2);
     await app.close();
   });
+
+  /**
+   * POST /pulls/:id/review allows 10 calls a minute and each one spends real
+   * money per target agent. Nothing server-side used to stop a double-click, a
+   * retried request or a second tab from buying the same review twice.
+   *
+   * The in-flight run is inserted directly rather than started for real: a mock
+   * LLM run finishes in milliseconds, so a genuine race would be untestable.
+   * This also exercises migration 0011's agent_runs_status_chk.
+   */
+  it('refuses a duplicate review for an agent already running (409), but not a different agent', async () => {
+    const app = await appWith(REVIEW_FIXTURE);
+    const { pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+
+    const busy = (
+      await app.inject({
+        method: 'POST',
+        url: '/agents',
+        payload: { name: 'Busy', provider: 'openai', model: 'gpt-4.1', system_prompt: 'busy' },
+      })
+    ).json();
+    const idle = (
+      await app.inject({
+        method: 'POST',
+        url: '/agents',
+        payload: { name: 'Idle', provider: 'openai', model: 'gpt-4.1', system_prompt: 'idle' },
+      })
+    ).json();
+
+    const [inFlight] = await pg.handle.db
+      .insert(t.agentRuns)
+      .values({ workspaceId, agentId: busy.id, prId: pr.id, status: 'running' })
+      .returning();
+
+    const conflict = await app.inject({
+      method: 'POST',
+      url: `/pulls/${pr.id}/review`,
+      payload: { agentId: busy.id },
+    });
+    expect(conflict.statusCode).toBe(409);
+    expect(conflict.json().error.code).toBe('conflict');
+    expect(conflict.json().error.details).toEqual({
+      conflicts: [{ run_id: inFlight!.id, agent_id: busy.id }],
+    });
+
+    // No second run row was created for the busy agent — the request was
+    // rejected BEFORE any agent_runs insert or LLM call.
+    const busyRuns = await pg.handle.db
+      .select()
+      .from(t.agentRuns)
+      .where(eq(t.agentRuns.agentId, busy.id));
+    expect(busyRuns).toHaveLength(1);
+
+    // A different agent on the same PR is legitimate parallel review, not a
+    // duplicate — this is what a naive "anything running for this PR?" check
+    // would have broken.
+    const allowed = await app.inject({
+      method: 'POST',
+      url: `/pulls/${pr.id}/review`,
+      payload: { agentId: idle.id },
+    });
+    expect(allowed.statusCode).toBe(200);
+
+    // `all: true` expands to every enabled agent, which includes the busy one.
+    const allConflict = await app.inject({
+      method: 'POST',
+      url: `/pulls/${pr.id}/review`,
+      payload: { all: true },
+    });
+    expect(allConflict.statusCode).toBe(409);
+
+    await waitForPrRuns(pg.handle.db, pr.id, { expected: 1 });
+    await app.close();
+  });
 });

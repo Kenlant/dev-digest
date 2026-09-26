@@ -21,8 +21,11 @@ export type ReviewRow = typeof t.reviews.$inferSelect;
 import * as reviewRepo from './repository/review.repo.js';
 import * as runRepo from './repository/run.repo.js';
 import * as pullRepo from './repository/pull.repo.js';
+import type { InFlightRun } from './domain/in-flight-runs.js';
+import type { InFlightRunReader } from './domain/ports.js';
 
-export class ReviewRepository {
+/** Infrastructure implements the domain's port; the arrow points inward. */
+export class ReviewRepository implements InFlightRunReader {
   constructor(private db: Db) {}
 
   // ---- PR lookup (workspace-scoped) --------------------------------------
@@ -75,6 +78,21 @@ export class ReviewRepository {
     prId: string,
   ): Promise<{ run_id: string; agent_id: string | null; agent_name: string | null; ran_at: string | null }[]> {
     return runRepo.activeRunsForPull(this.db, workspaceId, prId);
+  }
+
+  /**
+   * Same query as `activeRunsForPull`, mapped to the DOMAIN type at this
+   * boundary instead of to the wire DTO — this is the method that makes
+   * `ReviewRepository` satisfy the domain-declared `InFlightRunReader` port
+   * (`./domain/ports.ts`).
+   *
+   * `activeRunsForPull` above stays as-is because `GET /pulls/:id/runs/active`
+   * serves that snake_case shape straight to the client; the two callers want
+   * genuinely different things from one query.
+   */
+  async inFlightRunsFor(workspaceId: string, pullId: string): Promise<InFlightRun[]> {
+    const rows = await runRepo.activeRunsForPull(this.db, workspaceId, pullId);
+    return rows.map((r) => ({ runId: r.run_id, agentId: r.agent_id }));
   }
 
   /** All runs for a PR (any status), newest first — the PR run history. */

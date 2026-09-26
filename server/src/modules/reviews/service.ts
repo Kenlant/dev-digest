@@ -1,8 +1,10 @@
 import type { Container } from '../../platform/container.js';
 import type { FindingActionKind, RunEventKind, RunTrace } from '@devdigest/shared';
-import { AppError, NotFoundError } from '../../platform/errors.js';
+import { AppError, ConflictError, NotFoundError } from '../../platform/errors.js';
 import type { AgentRow } from '../../db/rows.js';
 import { ReviewRepository } from './repository.js';
+import { InFlightRuns, type RunScope } from './domain/in-flight-runs.js';
+import type { InFlightRunReader } from './domain/ports.js';
 import { type ReviewDto, type ReviewDtoFinding } from './helpers.js';
 import { ReviewRunExecutor, type Logger } from './run-executor.js';
 import { actOnFinding as actOnFindingImpl } from './findings.js';
@@ -29,11 +31,46 @@ export class ReviewService {
   private repo: ReviewRepository;
   private agents: Container['agentsRepo'];
   private executor: ReviewRunExecutor;
+  /**
+   * The duplicate-run rule depends on the domain-declared port, not on the
+   * Drizzle repository that happens to satisfy it. This is one narrowed
+   * dependency, not a claim that the class is clean: the constructor still takes
+   * the whole `Container` and still news up its own `ReviewRepository`. Widening
+   * that is the reviews step of the Onion migration, not this change.
+   */
+  private inFlightRuns: InFlightRunReader;
 
   constructor(private container: Container) {
     this.repo = new ReviewRepository(container.db);
+    this.inFlightRuns = this.repo;
     this.agents = container.agentsRepo;
     this.executor = new ReviewRunExecutor(container, this.repo, this.agents);
+  }
+
+  /**
+   * Reject a review request that duplicates work already in flight, BEFORE any
+   * `agent_runs` row exists and before a single token is spent.
+   *
+   * Why the server and not the button: `POST /pulls/:id/review` allows 10 calls
+   * a minute, and each one fans out to a real, paid LLM call per target agent.
+   * The only thing that used to stop a double-click, a retried request or a
+   * second open tab was client-side state.
+   *
+   * All-or-nothing on purpose: if ANY requested agent is already running, the
+   * whole request is refused with the conflicting run ids, rather than silently
+   * running the subset that happens to be idle. A caller that gets a 409 knows
+   * exactly what is already running and can wait or cancel.
+   */
+  async assertNoDuplicateRun(workspaceId: string, prId: string, scope: RunScope): Promise<void> {
+    const inFlight = InFlightRuns.of(await this.inFlightRuns.inFlightRunsFor(workspaceId, prId));
+    const conflicts = inFlight.conflictsWith(scope);
+    if (conflicts.length === 0) return;
+    throw new ConflictError(
+      conflicts.length === 1
+        ? 'A review is already running for this agent on this pull request.'
+        : `${conflicts.length} reviews are already running on this pull request.`,
+      { conflicts: conflicts.map((c) => ({ run_id: c.runId, agent_id: c.agentId })) },
+    );
   }
 
   // ===========================================================================

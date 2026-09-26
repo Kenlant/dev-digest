@@ -34,6 +34,14 @@ export default async function reviewsRoutes(appBase: FastifyInstance) {
       ...(body.agentId !== undefined ? { agentId: body.agentId } : {}),
       ...(body.all !== undefined ? { all: body.all } : {}),
     });
+    // Request DTO -> domain value object, then let the domain rule decide.
+    // Built from the RESOLVED targets rather than from the raw body, so
+    // `all: true` is checked against the agents it actually expands to.
+    // Throws ConflictError (409) when a run for one of them is already live.
+    await service.assertNoDuplicateRun(workspaceId, req.params.id, {
+      kind: 'agents',
+      ids: targets.map((a) => a.id),
+    });
     const { runs, reviews } = await service.runReview(
       workspaceId,
       req.params.id,
