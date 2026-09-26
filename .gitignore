@@ -23,3 +23,15 @@ test-results/
 
 # emdash worktree config (local)
 .emdash.json
+
+# local scratch from the pr-self-review helper (a captured diff + file list)
+.claude/pr-self-review/
+
+# pnpm 10 writes a stub pnpm-workspace.yaml (allowBuilds placeholders) into any
+# package dir it installs in. These four packages are deliberately NOT a
+# workspace — see the root AGENTS.md — so that file is install noise, never config.
+pnpm-workspace.yaml
+
+# deep-research working files (the durable artifact is .claude/skills/frontend-architecture)
+research_notes/
+reports/

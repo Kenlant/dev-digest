@@ -5,7 +5,6 @@
    Tab state lives in query (?tab). */
 "use client";
 
-import React from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Skeleton, ErrorState } from "@devdigest/ui";
 import { AppShell } from "../../../../../components/app-shell";
@@ -69,10 +68,10 @@ export default function PRDetailPage() {
 
   // Reviews come newest-first; each is its own run (grouped into accordions).
   const runs = reviews ?? [];
-  const allFindings: FindingRecord[] = React.useMemo(
-    () => runs.flatMap((r) => r.findings),
-    [reviews],
-  );
+  // Computed during render, not memoized: a flatMap over one PR's review runs is
+  // cheap, and the memo it replaces was keyed on [reviews] while reading `runs`
+  // — the dependency ESLint was warning about.
+  const allFindings: FindingRecord[] = runs.flatMap((r) => r.findings);
   const lethalTrifecta = allFindings.filter((f) => f.kind === "lethal_trifecta");
   const findingsCount = allFindings.length;
 

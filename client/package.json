@@ -9,6 +9,7 @@
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:arch": "depcruise src --config .dependency-cruiser.cjs",
     "test": "vitest run"
   },
   "dependencies": {
@@ -32,6 +33,7 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.3.4",
+    "dependency-cruiser": "^17.4.3",
     "eslint": "^10.10.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "jsdom": "^25.0.1",

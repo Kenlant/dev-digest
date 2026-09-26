@@ -1,7 +1,7 @@
 # Client suite — Next.js web app (@devdigest/web).
-# Typecheck + component/unit tests (vitest + jsdom). Hermetic: no API, no DB,
-# no browser — fetch is mocked in the tests. The full-stack browser flow lives
-# in e2e-web.yml.
+# Typecheck + lint + boundary gate + component/unit tests (vitest + jsdom).
+# Hermetic: no API, no DB, no browser — fetch is mocked in the tests. The
+# full-stack browser flow lives in e2e-web.yml.
 name: client
 
 on:
@@ -9,10 +9,14 @@ on:
     branches: [main]
     paths:
       - 'client/**'
+      - 'server/src/vendor/shared/**'
+      - 'scripts/check-shared-drift.sh'
       - '.github/workflows/client.yml'
   pull_request:
     paths:
       - 'client/**'
+      - 'server/src/vendor/shared/**'
+      - 'scripts/check-shared-drift.sh'
       - '.github/workflows/client.yml'
 
 permissions:
@@ -44,6 +48,23 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # client/src/vendor/shared is a MANUAL copy of server/src/vendor/shared.
+      # Nothing synced them and they had already drifted (5 files, incl. a
+      # provider enum missing 'openrouter'), so check it on both sides — this job
+      # and server-unit.yml — because either copy can be the one that moved.
+      - name: Shared-contract drift
+        working-directory: .
+        run: ./scripts/check-shared-drift.sh
+
       - run: pnpm typecheck
+
+      - run: pnpm lint
+
+      # Frontend boundary gate — shared -> features -> app, the @devdigest/ui
+      # barrel-only rule, and cycles. See client/.dependency-cruiser.cjs and
+      # .claude/skills/frontend-architecture/SKILL.md. There is no
+      # known-violations baseline here: the client starts clean (238 modules, 0
+      # violations), unlike server/.
+      - run: pnpm lint:arch
 
       - run: pnpm test

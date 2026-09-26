@@ -39,9 +39,11 @@ If a test wouldn't catch a class of regression we care about, we don't write it.
 surface (list, diff, findings, run controls) and the agent editor.
 
 **server-unit** — the DB-free majority: adapters, prompt assembly, grounding,
-repo-intel ranking & indexing, pricing, route smoke. The `typecheck` job also
-runs on Windows, which doubles as the `@ast-grep/napi` prebuilt gate (install
-fails there if the win32 prebuilt is missing).
+repo-intel ranking & indexing, pricing, route smoke. Its first job also runs
+`pnpm lint`, the Onion boundary gate (`pnpm lint:arch`) and the shared-contract
+drift check. Linux only — there is deliberately no Windows/macOS matrix, so
+there is **no** CI gate on the `@ast-grep/napi` win32 prebuilt; that risk is
+held down by exact-pinning `@ast-grep/napi` instead.
 
 **server-integration** — the `*.it.test.ts` files. Each starts a real Postgres
 (pgvector) via testcontainers, builds the Fastify app, migrates + seeds, and
@@ -80,10 +82,16 @@ cd e2e && npm install && npm test
   (`vitest run --exclude '**/*.it.test.ts'`); the integration lane selects only
   it (`vitest run .it.test`). A DB-backed test that imports `test/helpers/pg.ts`
   must use the `.it.test.ts` suffix.
-- **`server/package.json` is `skip-worktree`** (a local variant diverges from the
-  committed file). CI therefore invokes the split with
-  `pnpm exec vitest run …` rather than relying on committed `test:unit` /
-  `test:integration` scripts.
+- **CI calls package scripts, not inlined commands.** `test:unit`,
+  `test:integration` and `lint:arch` live in `server/package.json`, so the lane
+  a workflow runs is the same one you can run locally. (Earlier workflows
+  inlined `pnpm exec vitest run …` because `server/package.json` was once
+  `skip-worktree`; it no longer is, and the inlining is gone.)
+- **Lint and architecture are CI gates, not advice.** Every package runs
+  `lint` in CI; `server/` and `client/` additionally run `lint:arch`
+  (dependency-cruiser). `client/src/vendor/shared` is diffed against the
+  canonical `server/src/vendor/shared` by `scripts/check-shared-drift.sh` in
+  both the client and server-unit workflows.
 - **Hermetic by default.** Reach for `src/adapters/mocks.ts` (MockLLMProvider,
   MockGitClient) rather than real network/keys.
 - **E2E specs are deterministic batch JSON** (`e2e/specs/*.flow.json`) using

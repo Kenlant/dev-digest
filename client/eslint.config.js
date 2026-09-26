@@ -9,7 +9,12 @@ export default tseslint.config(
     plugins: { "react-hooks": reactHooks },
     rules: {
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      // "error", not "warn": `pnpm lint` only started running in CI alongside
+      // this change, and as a warning this rule had already let a real wrong
+      // dependency array sit in pulls/[number]/page.tsx. Deliberate exceptions
+      // use an inline eslint-disable with a comment saying why (see
+      // lib/hooks/reviews.ts's useRunEvents).
+      "react-hooks/exhaustive-deps": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
