@@ -1,49 +1,98 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, uuid, text, integer, jsonb, timestamp, doublePrecision } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  jsonb,
+  timestamp,
+  doublePrecision,
+  index,
+  check,
+} from 'drizzle-orm/pg-core';
 import { now } from './_shared';
 import { workspaces } from './core';
 import { pullRequests } from './pulls';
+import { agentRuns } from './runs';
 
 // ============================================================ Review & findings
 
-export const reviews = pgTable('reviews', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  workspaceId: uuid('workspace_id')
-    .notNull()
-    .references(() => workspaces.id, { onDelete: 'cascade' }),
-  prId: uuid('pr_id')
-    .notNull()
-    .references(() => pullRequests.id, { onDelete: 'cascade' }),
-  agentId: uuid('agent_id'),
-  /** The agent_run that produced this review (links the timeline run ↔ review). */
-  runId: uuid('run_id'),
-  kind: text('kind', { enum: ['summary', 'review'] }).notNull(),
-  verdict: text('verdict'),
-  summary: text('summary'),
-  score: integer('score'),
-  model: text('model'),
-  createdAt: now(),
-});
+export const reviews = pgTable(
+  'reviews',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    prId: uuid('pr_id')
+      .notNull()
+      .references(() => pullRequests.id, { onDelete: 'cascade' }),
+    agentId: uuid('agent_id'),
+    /**
+     * The agent_run that produced this review (links the timeline run ↔ review).
+     * NULL for reviews with no run behind them (the demo seed, older rows).
+     *
+     * This carries a real FK as of migration 0011: `deleteAgentRun` already
+     * deleted the review by hand before deleting the run, so the cascade only
+     * makes that existing behaviour enforceable. Two read paths join on this
+     * column (`listRunsForPull`, the PR-list findings preview) and both were
+     * doing it against an unconstrained, unindexed uuid.
+     */
+    runId: uuid('run_id').references(() => agentRuns.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['summary', 'review'] }).notNull(),
+    verdict: text('verdict'),
+    summary: text('summary'),
+    score: integer('score'),
+    model: text('model'),
+    createdAt: now(),
+  },
+  (t) => ({
+    // reviewsForPull(): WHERE pr_id = $1 ORDER BY created_at DESC.
+    prCreatedIdx: index('reviews_pr_created_idx').on(t.prId, t.createdAt.desc()),
+    // listRunsForPull() + the PR-list preview: WHERE run_id IN (...).
+    runIdx: index('reviews_run_idx').on(t.runId),
+  }),
+);
 
-export const findings = pgTable('findings', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  reviewId: uuid('review_id')
-    .notNull()
-    .references(() => reviews.id, { onDelete: 'cascade' }),
-  file: text('file').notNull(),
-  startLine: integer('start_line').notNull(),
-  endLine: integer('end_line').notNull(),
-  severity: text('severity').notNull(),
-  category: text('category').notNull(),
-  title: text('title').notNull(),
-  rationale: text('rationale').notNull(),
-  suggestion: text('suggestion'),
-  confidence: doublePrecision('confidence').notNull(),
-  kind: text('kind').notNull().default('finding'),
-  trifectaComponents: jsonb('trifecta_components').$type<string[]>(),
-  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
-  dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
-});
+export const findings = pgTable(
+  'findings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    reviewId: uuid('review_id')
+      .notNull()
+      .references(() => reviews.id, { onDelete: 'cascade' }),
+    file: text('file').notNull(),
+    startLine: integer('start_line').notNull(),
+    endLine: integer('end_line').notNull(),
+    severity: text('severity').notNull(),
+    category: text('category').notNull(),
+    title: text('title').notNull(),
+    rationale: text('rationale').notNull(),
+    suggestion: text('suggestion'),
+    confidence: doublePrecision('confidence').notNull(),
+    kind: text('kind').notNull().default('finding'),
+    trifectaComponents: jsonb('trifecta_components').$type<string[]>(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
+  },
+  (t) => ({
+    // Every findings read is "the findings of these reviews": the PR-list
+    // preview, listRunsForPull's per-run badges, and reviewsForPull all issue
+    // `WHERE review_id IN (...)`. Postgres does not index a FK automatically.
+    reviewIdx: index('findings_review_idx').on(t.reviewId),
+    /**
+     * Severity drives the score penalty, the CI gate and the UI badges, and the
+     * set is closed (`Severity` in @devdigest/shared). Drizzle's
+     * `text(..., { enum })` is a TYPE-level hint only — it emits plain `text`
+     * and no DB constraint — so this CHECK is the first thing that would stop a
+     * mis-cased 'critical' from silently scoring 0 penalty.
+     */
+    severityChk: check(
+      'findings_severity_chk',
+      sql`${t.severity} in ('CRITICAL', 'WARNING', 'SUGGESTION')`,
+    ),
+  }),
+);
 
 export const prIntent = pgTable('pr_intent', {
   prId: uuid('pr_id')

@@ -78,6 +78,13 @@
       "when": 1789812168269,
       "tag": "0010_tough_crusher_hogan",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790429960898,
+      "tag": "0011_next_puppet_master",
+      "breakpoints": true
     }
   ]
 }
