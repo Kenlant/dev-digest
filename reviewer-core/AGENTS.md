@@ -53,7 +53,7 @@ Package manager is **npm** here (see `package-lock.json`), not pnpm.
   (`llm/openrouter.ts`) plus shared LLM plumbing (`llm/structured.ts`).
 - `review/` holds orchestration strategies: `run.ts` (single-pass),
   `reduce.ts` (map-reduce) — one file per strategy.
-- See root [`CLAUDE.md`](../CLAUDE.md#naming-conventions) for cross-package
+- See root [`AGENTS.md`](../AGENTS.md#naming-conventions) for cross-package
   rules.
 
 ## Gotchas
@@ -64,6 +64,10 @@ Package manager is **npm** here (see `package-lock.json`), not pnpm.
 
 ## Read when…
 
+- **Editing anything under `src/` → the
+  [`onion-architecture`](../.claude/skills/onion-architecture/SKILL.md) skill.**
+  This package is the pure core of the onion; `npm run lint` enforces the
+  import ban (no `fs`/`pg`/`drizzle-orm`/`octokit`/network outside `src/llm/`).
 - Pipeline diagram and public API list → [`README.md`](README.md)
 - Stage-by-stage pipeline, mode selection, LLMProvider port → [`docs/pipeline.md`](docs/pipeline.md)
 - Grounding rule + deterministic scoring contract → [`specs/grounding-contract.md`](specs/grounding-contract.md)

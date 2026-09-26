@@ -3,7 +3,7 @@
 The JSON shape every `specs/NN-name.flow.json` must satisfy, as consumed by
 `run.ts` and typed in `lib/assert.ts`. This file documents the contract
 itself; the `.flow.json` files are the actual specs written against it
-(per the naming convention in `../CLAUDE.md`) — this file is not one of
+(per the naming convention in `../AGENTS.md`) — this file is not one of
 them.
 
 ## Shape

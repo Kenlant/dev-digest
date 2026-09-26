@@ -71,7 +71,7 @@ breakdown.
 `server/src/vendor/shared` (the canonical `@devdigest/shared` contracts).
 There is no build step or CI check that keeps them in sync — changing a
 Zod contract (e.g. adding a field to `PrMeta`) means editing both copies
-by hand, in the same PR. See root `CLAUDE.md`'s do-not-touch section.
+by hand, in the same PR. See root `AGENTS.md`'s do-not-touch section.
 
 ## Colocated feature components
 

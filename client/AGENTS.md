@@ -30,7 +30,7 @@ no API needed).
 - `vendor/ui` — `@devdigest/ui`, the design system itself (not a copy of
   anything external)
 - `vendor/shared` — manual copy of server's shared contracts (see root
-  `CLAUDE.md` do-not-touch note)
+  `AGENTS.md` do-not-touch note)
 
 ## Non-default conventions
 
@@ -57,7 +57,7 @@ no API needed).
 - `vendor/ui` (`@devdigest/ui`) primitives live under `primitives/`, `kit/`,
   `charts/` — always imported through the package's barrel `index.ts`, never
   by reaching into those layer folders directly.
-- See root [`CLAUDE.md`](../CLAUDE.md#naming-conventions) for cross-package
+- See root [`AGENTS.md`](../AGENTS.md#naming-conventions) for cross-package
   rules.
 
 ## Gotchas
@@ -65,11 +65,12 @@ no API needed).
 - Component/interaction tests mock `fetch` — they need neither the real API
   nor a browser. Real browser journeys live in `../e2e`, not here.
 - `vendor/shared` can silently drift from the server's copy — no CI check
-  catches it (see root `CLAUDE.md`).
+  catches it (see root `AGENTS.md`).
 
 ## Read when…
 
 - Route map and stack details → [`README.md`](README.md)
+- Where a new file/component/constant belongs, how to split it → [`../.claude/skills/frontend-architecture/SKILL.md`](../.claude/skills/frontend-architecture/SKILL.md)
 - Server/Client boundaries, hooks→api.ts data flow → [`docs/ui-architecture.md`](docs/ui-architecture.md)
 - Every route's data/behavior contract → [`specs/pages.md`](specs/pages.md)
 - Design-system layers/usage → [`src/vendor/ui/README.md`](src/vendor/ui/README.md)

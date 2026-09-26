@@ -31,7 +31,7 @@ Fastify 5.2 · Drizzle ORM 0.38 + `postgres` (pgvector) · `fastify-type-provide
   `model-router.ts`, `price-book.ts`, prompt/grounding/structured glue
 - `prompts/` — onboarding system prompt (Markdown)
 - `vendor/shared` — canonical `@devdigest/shared` contracts (see root
-  `CLAUDE.md` do-not-touch note)
+  `AGENTS.md` do-not-touch note)
 
 ## Non-default conventions
 
@@ -54,7 +54,7 @@ Fastify 5.2 · Drizzle ORM 0.38 + `postgres` (pgvector) · `fastify-type-provide
   `modules/<name>/repository/`.
 - Adapters: `adapters/<port>/` per port (llm, github, git, …), with
   `mocks.ts` at the `adapters/` root providing every port's test double.
-- See root [`CLAUDE.md`](../CLAUDE.md#naming-conventions) for cross-package
+- See root [`AGENTS.md`](../AGENTS.md#naming-conventions) for cross-package
   rules.
 
 ## Gotchas
@@ -68,6 +68,11 @@ Fastify 5.2 · Drizzle ORM 0.38 + `postgres` (pgvector) · `fastify-type-provide
 
 ## Read when…
 
+- **Adding or editing anything under `src/modules/`, `src/adapters/`,
+  `src/db/rows.ts` or `src/platform/container.ts` → the
+  [`onion-architecture`](../.claude/skills/onion-architecture/SKILL.md) skill.**
+  Ring directions are gated in CI by
+  `pnpm exec depcruise src --config .dependency-cruiser.cjs --ignore-known`.
 - API/DI/request flow diagrams → [`README.md`](README.md)
 - DI container, ports/adapters, module registration → [`docs/architecture.md`](docs/architecture.md)
 - The review flow's full contract (trigger → cost → reads) → [`specs/review-flow.md`](specs/review-flow.md)

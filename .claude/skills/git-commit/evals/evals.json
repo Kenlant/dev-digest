@@ -1,0 +1,57 @@
+{
+  "skill_name": "git-commit",
+  "evals": [
+    {
+      "id": 0,
+      "name": "feature-plus-incidental-bug",
+      "prompt": "ok I added the STALE badge for runs that stop heartbeating — while I was testing it I noticed usePolling never cleared its interval so I fixed that too. commit it",
+      "expected_output": "One feat(reviews) commit. Body opens with the prior state, describes the STALE badge, and gives the usePolling interval leak its own paragraph with the actual mechanism (effect re-runs stack intervals / no cleanup on unmount). Fortune trailer present.",
+      "fixture": "f1-feature-plus-bug",
+      "assertions": [
+        {"id": "subject_conventional", "text": "Subject matches type(scope): description with an allowed type", "check": "script"},
+        {"id": "subject_within_80", "text": "Subject line is 80 characters or fewer", "check": "script"},
+        {"id": "body_wrapped_80", "text": "Every body line is 80 characters or fewer", "check": "script"},
+        {"id": "fortune_present", "text": "A single-line Fortune: trailer is present", "check": "script"},
+        {"id": "no_coauthor", "text": "No Co-Authored-By line (the Fortune trailer replaces it)", "check": "script"},
+        {"id": "body_substantive", "text": "Body has at least 3 non-empty lines beyond subject and Fortune", "check": "script"},
+        {"id": "incidental_fix_separated", "text": "The usePolling interval fix is called out distinctly from the STALE badge feature, not merged into one undifferentiated list", "check": "judgment"},
+        {"id": "incidental_root_cause", "text": "Body explains the mechanism of the interval leak (missing cleanup means intervals accumulate on re-render/unmount), not just that it was fixed", "check": "judgment"},
+        {"id": "problem_first_opening", "text": "Body opens with the prior state of the code or the problem, rather than restating the change ('This commit adds...', 'Adds a badge...')", "check": "judgment"},
+        {"id": "no_fabricated_verification", "text": "Any verification claim is one the agent could actually have made; it does not claim tests/typecheck passed without running them", "check": "judgment"}
+      ]
+    },
+    {
+      "id": 1,
+      "name": "tiny-one-line-fix",
+      "prompt": "formatCost returns $0.00 for runs with no cost data, should be an em dash. staged it, commit please",
+      "expected_output": "One fix commit with a real body despite the change being two lines. Body explains why $0.00 was actively wrong — it conflates 'no cost recorded' with 'this run was free'. Fortune trailer present.",
+      "fixture": "f2-tiny-fix",
+      "assertions": [
+        {"id": "subject_conventional", "text": "Subject matches type(scope): description with an allowed type", "check": "script"},
+        {"id": "subject_within_80", "text": "Subject line is 80 characters or fewer", "check": "script"},
+        {"id": "body_wrapped_80", "text": "Every body line is 80 characters or fewer", "check": "script"},
+        {"id": "fortune_present", "text": "A single-line Fortune: trailer is present", "check": "script"},
+        {"id": "no_coauthor", "text": "No Co-Authored-By line (the Fortune trailer replaces it)", "check": "script"},
+        {"id": "body_not_skipped", "text": "The commit has a real body, not just a subject line, despite being a trivial change", "check": "script"},
+        {"id": "explains_why_wrong", "text": "Body explains why $0.00 was wrong — that it conflates missing data with a genuinely zero cost — rather than only restating the code change", "check": "judgment"},
+        {"id": "type_is_fix", "text": "Subject type is fix", "check": "judgment"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "unrelated-changes-split",
+      "prompt": "CI's green again — dropped the windows matrix and added the missing fflate dep. can you commit",
+      "expected_output": "The two staged changes share no cause (a CI matrix reduction and a missing runtime dependency). Ideal behavior is to notice this and either split into two commits or explicitly raise the question before bundling. Whatever lands must still follow the house format.",
+      "fixture": "f3-multipart-ci",
+      "assertions": [
+        {"id": "subject_conventional", "text": "Every commit subject matches type(scope): description with an allowed type", "check": "script"},
+        {"id": "subject_within_80", "text": "Every subject line is 80 characters or fewer", "check": "script"},
+        {"id": "body_wrapped_80", "text": "Every body line is 80 characters or fewer", "check": "script"},
+        {"id": "fortune_present", "text": "Every commit created carries its own Fortune: trailer", "check": "script"},
+        {"id": "no_coauthor", "text": "No Co-Authored-By line (the Fortune trailer replaces it)", "check": "script"},
+        {"id": "recognized_unrelated", "text": "The run recognizes the two changes are unrelated — either by splitting into two commits or by explicitly raising the split question in notes.md", "check": "judgment"},
+        {"id": "dep_not_described_as_ci", "text": "The fflate dependency is described as a missing runtime dependency, not miscategorised as a CI configuration change", "check": "judgment"}
+      ]
+    }
+  ]
+}

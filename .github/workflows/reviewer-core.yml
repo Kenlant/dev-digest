@@ -46,4 +46,10 @@ jobs:
 
       - run: npm run typecheck
 
+      # Also the Onion purity gate: eslint.config.js bans fs/pg/drizzle/octokit/
+      # network imports outside src/llm/**, so the "only side effect is the
+      # injected LLMProvider" rule is enforced, not just documented.
+      # See .claude/skills/onion-architecture/SKILL.md.
+      - run: npm run lint
+
       - run: npm test

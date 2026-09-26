@@ -43,7 +43,7 @@ config in `eslint.config.js`).
   numbered by intended run order (`01-app-boot.flow.json`,
   `02-repo-pulls-detail.flow.json`, …) — a new journey is a new numbered file,
   never inserted out of order.
-- See root [`CLAUDE.md`](../CLAUDE.md#naming-conventions) for cross-package
+- See root [`AGENTS.md`](../AGENTS.md#naming-conventions) for cross-package
   rules.
 
 ## Gotchas

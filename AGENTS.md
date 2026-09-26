@@ -12,7 +12,7 @@ Docker; API and web run on the host via `pnpm dev` inside each package.
 
 Every package exposes the same three check commands — `test`, `typecheck`,
 `lint` — run from inside that package's directory (`pnpm lint` / `npm run
-lint`, etc.). See each package's own `CLAUDE.md` for exact invocations.
+lint`, etc.). See each package's own `AGENTS.md` for exact invocations.
 
 ## Map
 
@@ -77,7 +77,7 @@ Four **standalone** packages — no pnpm/yarn workspace, each has its own
 - Full architecture, ports, outbound calls → [`README.md`](README.md)
 - Test/CI strategy across all packages → [`TESTING.md`](TESTING.md)
 - Built-in reviewer agent prompt design → [`docs/agent-prompts/`](docs/agent-prompts/)
-- Working inside the backend → [`server/CLAUDE.md`](server/CLAUDE.md)
-- Working inside the web app → [`client/CLAUDE.md`](client/CLAUDE.md)
-- Working on the review engine → [`reviewer-core/CLAUDE.md`](reviewer-core/CLAUDE.md)
-- Working on browser e2e → [`e2e/CLAUDE.md`](e2e/CLAUDE.md)
+- Working inside the backend → [`server/AGENTS.md`](server/AGENTS.md)
+- Working inside the web app → [`client/AGENTS.md`](client/AGENTS.md)
+- Working on the review engine → [`reviewer-core/AGENTS.md`](reviewer-core/AGENTS.md)
+- Working on browser e2e → [`e2e/AGENTS.md`](e2e/AGENTS.md)
